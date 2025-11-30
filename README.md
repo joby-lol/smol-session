@@ -9,10 +9,6 @@ An opinionated PHP session management library designed to expose a simple API wh
 - **Atomic updates** - Operations like increments that apply atomically on commit are possible
 - **Simple static API** - Clean, straightforward interface for common session operations
 
-## Requirements
-
-- PHP 8.3 or higher
-
 ## Installation
 
 ```bash
