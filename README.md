@@ -37,6 +37,13 @@ $views = Session::get('page_views');
 
 // Commit all changes at once atomically, does not reopen session if no changes are queued
 Session::commit();
+
+// Can rotate session IDs
+Session::rotate();
+
+// Can also destroy the session, deleting all data and unsetting the cookie
+Session::destroy();
+
 ```
 
 ## How It Works

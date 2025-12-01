@@ -1,6 +1,6 @@
 <?php
 /*
-* Context Injection
+* Simple Session
 * https://github.com/joby-lol/php-simple-session
 * (c) 2025 Joby Elliott code@joby.lol
 * MIT License https://opensource.org/licenses/MIT

@@ -1,6 +1,6 @@
 <?php
 /*
-* Context Injection
+* Simple Session
 * https://github.com/joby-lol/php-simple-session
 * (c) 2025 Joby Elliott code@joby.lol
 * MIT License https://opensource.org/licenses/MIT
@@ -93,6 +93,56 @@ class Session
     public static function touch(string $key): void
     {
         static::update($key, new TouchValue());
+    }
+
+    /**
+     * Destroy the entire session, including all managed data. This will immediately discard all cached data and queued updates, clear the session cookie, and remove all existing session data from the server.
+     * 
+     * Does nothing but clear internal state if there is no existing session.
+     */
+    public static function destroy(): void
+    {
+        // clear internal state
+        static::$updates = [];
+        static::$was_read = [];
+        static::$data = null;
+        // if there is no session then we're done
+        if (session_status() === PHP_SESSION_NONE && !isset($_COOKIE[session_name()])) {
+            return;
+        }
+        // otherwise, open and destroy the session
+        session_start();
+        // clear the session cookie
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(), // @phpstan-ignore-line when not setting, this always returns a string
+            '',
+            time() - 3600,
+            $params['path'],
+            $params['domain'],
+            $params['secure'],
+            $params['httponly'],
+        );
+        // destroy the PHP session
+        session_destroy();
+    }
+
+    /**
+     * Rotate the session ID, generating a new one while keeping all data intact. Deletes the old session ID unless $keep_old_session is true. This creates a more secure session rotation by default, potentially at the expense of usability in some cases. If your app makes many concurrent requests that share a session, you may want to set $keep_old_session to true to avoid session loss in those requests.
+     * 
+     * Does nothing if there is no existing session.
+     */
+    public static function rotate(bool $keep_old_session = false): void
+    {
+        if (session_status() === PHP_SESSION_NONE && !isset($_COOKIE[session_name()])) {
+            return;
+        }
+        // commit before rotation to ensure all changes are saved
+        static::commit();
+        // open and rotate the session
+        session_start();
+        session_regenerate_id(!$keep_old_session);
+        session_abort();
     }
 
     /**
