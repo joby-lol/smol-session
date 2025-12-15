@@ -1,12 +1,12 @@
 <?php
 /*
-* Simple Session
-* https://github.com/joby-lol/php-simple-session
+* smolSession
+* https://github.com/joby-lol/smol-session
 * (c) 2025 Joby Elliott code@joby.lol
 * MIT License https://opensource.org/licenses/MIT
 */
 
-namespace Joby\Session;
+namespace Joby\Smol\Session;
 
 /** 
  * Increment a given value as an integer. Accepts floats, but the final value will be truncated to an int.

@@ -1,12 +1,12 @@
 <?php
 /*
-* Simple Session
-* https://github.com/joby-lol/php-simple-session
+* smolSession
+* https://github.com/joby-lol/smol-session
 * (c) 2025 Joby Elliott code@joby.lol
 * MIT License https://opensource.org/licenses/MIT
 */
 
-namespace Joby\Session;
+namespace Joby\Smol\Session;
 
 use RuntimeException;
 
@@ -34,7 +34,7 @@ class Session
     /**
      * @var string $storage_key the key in $_SESSION where managed session data is stored. If modified, the entire class will be reset and all uncommitted changes lost.
      */
-    protected static string $storage_key = '_simple_session_data';
+    protected static string $storage_key = '_smol_session_data';
 
     /**
      * Get the value for a given key, applying any queued updates.

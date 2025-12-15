@@ -1,4 +1,4 @@
-# Simple Session
+# smolSession
 
 An opinionated PHP session management library designed to expose a simple API while providing smart performance optimizations and minimizing session creation and locking.
 
@@ -12,13 +12,13 @@ An opinionated PHP session management library designed to expose a simple API wh
 ## Installation
 
 ```bash
-composer require joby/simple-session
+composer require joby/smol-session
 ```
 
 ## Usage
 
 ```php
-use Joby\Session\Session;
+use Joby\Smol\Session\Session;
 
 // Set values (queued, doesn't lock the session)
 Session::set('user_id', 123);
@@ -59,7 +59,7 @@ This approach minimizes session file locking and reduces the window where concur
 You can create custom atomic update operations by implementing the `SessionUpdate` interface:
 
 ```php
-use Joby\Session\SessionUpdate;
+use Joby\Smol\Session\SessionUpdate;
 
 class AppendToArray implements SessionUpdate
 {

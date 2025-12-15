@@ -1,5 +1,5 @@
 {
-  "name": "joby/simple-session",
+  "name": "joby/smol-session",
   "description": "An opinionated PHP session management library, designed to expose a simple API but provide smart performance optimizations and minimize session creation and locking.",
   "type": "library",
   "require": {
@@ -12,12 +12,12 @@
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Joby\\Session\\": "src/"
+      "Joby\\Smol\\Session\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Joby\\Session\\": "tests/"
+      "Joby\\Smol\\Session\\": "tests/"
     }
   },
   "authors": [

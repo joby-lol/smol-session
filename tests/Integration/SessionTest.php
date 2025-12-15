@@ -1,17 +1,17 @@
 <?php
 /*
-* Simple Session
-* https://github.com/joby-lol/php-simple-session
+* smolSession
+* https://github.com/joby-lol/smol-session
 * (c) 2025 Joby Elliott code@joby.lol
 * MIT License https://opensource.org/licenses/MIT
 */
 
-namespace Joby\Session\Tests\Integration;
+namespace Joby\Smol\Session\Tests\Integration;
 
-use Joby\Session\Session;
-use Joby\Session\SetValue;
-use Joby\Session\IncrementValue;
-use Joby\Session\UnsetValue;
+use Joby\Smol\Session\Session;
+use Joby\Smol\Session\SetValue;
+use Joby\Smol\Session\IncrementValue;
+use Joby\Smol\Session\UnsetValue;
 use PHPUnit\Framework\TestCase;
 
 class SessionTest extends TestCase
@@ -217,7 +217,7 @@ class SessionTest extends TestCase
 
     public function test_update_with_custom_implementation()
     {
-        Session::update('items', new class implements \Joby\Session\SessionUpdate {
+        Session::update('items', new class implements \Joby\Smol\Session\SessionUpdate {
             public function apply(mixed $current_value): array
             {
                 $array = is_array($current_value) ? $current_value : [];
