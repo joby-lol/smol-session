@@ -1,10 +1,11 @@
 <?php
-/*
-* smolSession
-* https://github.com/joby-lol/smol-session
-* (c) 2025 Joby Elliott code@joby.lol
-* MIT License https://opensource.org/licenses/MIT
-*/
+
+/**
+ * smolSession
+ * https://github.com/joby-lol/smol-session
+ * (c) 2025 Joby Elliott code@joby.lol
+ * MIT License https://opensource.org/licenses/MIT
+ */
 
 namespace Joby\Smol\Session;
 
@@ -142,7 +143,7 @@ class Session
         // open and rotate the session
         session_start();
         session_regenerate_id(!$keep_old_session);
-        session_abort();
+        session_write_close();
     }
 
     /**
