@@ -46,6 +46,30 @@ Session::destroy();
 
 ```
 
+## Typed Getters
+
+smolSession provides type-safe getter methods that automatically convert session values to the expected type:
+```php
+// Type-safe access with automatic conversion
+$userId = Session::getInt('user_id');       // Converts "123" → 123
+$price = Session::getFloat('cart_total');   // Converts "19.99" → 19.99
+$enabled = Session::getBool('dark_mode');   // Converts "yes" → true
+$username = Session::getString('username'); // Converts 123 → "123"
+
+// With defaults for missing values
+$limit = Session::getInt('page_limit', 20);
+$theme = Session::getString('theme', 'default');
+$debug = Session::getBool('debug', false);
+
+// Require values (throw TypeCastException if null/missing)
+$requiredId = Session::requireInt('user_id');
+$requiredEmail = Session::requireString('email');
+```
+
+### Type Conversion Rules
+
+Values are converted pretty permissively using (https://github.com/joby-lol/smol-cast)[smolCast], see its readme for detailed rules about what can be converted and how it works.
+
 ## How It Works
 
 1. **Reading** - `Session::get()` reads from a cached copy of the session and applies any queued updates

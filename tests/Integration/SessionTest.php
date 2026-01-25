@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 class SessionTest extends TestCase
 {
+
     protected function setUp(): void
     {
         // Clean up any existing session
@@ -225,7 +226,11 @@ class SessionTest extends TestCase
 
     public function test_update_with_custom_implementation()
     {
-        Session::update('items', new class implements \Joby\Smol\Session\SessionUpdate {
+        Session::update(
+            'items',
+
+            new class implements \Joby\Smol\Session\SessionUpdate {
+
             public function apply(mixed $current_value): array
             {
                 $array = is_array($current_value) ? $current_value : [];
@@ -237,7 +242,9 @@ class SessionTest extends TestCase
             {
                 return false;
             }
-        });
+
+            },
+        );
 
         $this->assertEquals(['new_item'], Session::get('items'));
     }
@@ -262,4 +269,57 @@ class SessionTest extends TestCase
         // Reset for other tests
         Session::setStorageKey('_simple_session_data');
     }
+
+    public function test_get_int_casts_string_to_int()
+    {
+        Session::set('count', '42');
+        $this->assertSame(42, Session::getInt('count'));
+    }
+
+    public function test_get_int_returns_default_when_null()
+    {
+        $this->assertSame(10, Session::getInt('missing', 10));
+    }
+
+    public function test_require_int_throws_when_value_is_null()
+    {
+        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        Session::requireInt('missing');
+    }
+
+    public function test_get_float_casts_string_to_float()
+    {
+        Session::set('price', '19.99');
+        $this->assertSame(19.99, Session::getFloat('price'));
+    }
+
+    public function test_get_bool_casts_string_to_bool()
+    {
+        Session::set('enabled', 'yes');
+        $this->assertTrue(Session::getBool('enabled'));
+    }
+
+    public function test_get_bool_returns_default_when_null()
+    {
+        $this->assertFalse(Session::getBool('missing', false));
+    }
+
+    public function test_require_bool_throws_when_value_is_null()
+    {
+        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        Session::requireBool('missing');
+    }
+
+    public function test_get_string_casts_int_to_string()
+    {
+        Session::set('id', 123);
+        $this->assertSame('123', Session::getString('id'));
+    }
+
+    public function test_require_string_throws_when_value_is_null()
+    {
+        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        Session::requireString('missing');
+    }
+
 }

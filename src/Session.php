@@ -9,6 +9,7 @@
 
 namespace Joby\Smol\Session;
 
+use Joby\Smol\Cast\StaticCastingGettersTrait;
 use RuntimeException;
 
 /**
@@ -20,18 +21,24 @@ use RuntimeException;
  */
 class Session
 {
+
+    use StaticCastingGettersTrait;
+
     /** 
      * @var array<string,SessionUpdate[]> $updates a list of queued updates to apply on commit
      */
     protected static array $updates = [];
+
     /**
      * @var array<string> $was_read a list of session keys that have been read during this request
      */
     protected static array $was_read = [];
+
     /**
      * @var array<mixed>|null $data the session data, cached from $_SESSION on first read
      */
     protected static array|null $data = null;
+
     /**
      * @var string $storage_key the key in $_SESSION where managed session data is stored. If modified, the entire class will be reset and all uncommitted changes lost.
      */
@@ -223,7 +230,8 @@ class Session
             $value = static::applyUpdates($key, $value);
             if ($value === null) {
                 $unset_keys[] = $key;
-            } else {
+            }
+            else {
                 $new_values[$key] = $value;
             }
         }
@@ -260,7 +268,8 @@ class Session
      */
     public static function setStorageKey(string $key): void
     {
-        if ($key === static::$storage_key) return;
+        if ($key === static::$storage_key)
+            return;
         static::$storage_key = $key;
         static::$updates = [];
         static::$was_read = [];
@@ -286,7 +295,8 @@ class Session
     protected static function loadData(bool $force_refresh = false): void
     {
         // if we have data, and we're not forcing a refresh, then we're done
-        if (static::$data !== null && !$force_refresh) return;
+        if (static::$data !== null && !$force_refresh)
+            return;
         // if there is no session then we're done
         if (!static::exists()) {
             static::$data = [];
@@ -305,4 +315,15 @@ class Session
         static::$data = $_SESSION[$storage_key];
         session_abort();
     }
+
+    /**
+     * @inheritDoc
+     * 
+     * This implementation of CastingGettersTrait::getCastableValue() loads session data for casting.
+     */
+    protected static function getCastableValue(string $key): mixed
+    {
+        return static::get($key);
+    }
+
 }
