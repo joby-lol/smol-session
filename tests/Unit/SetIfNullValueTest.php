@@ -34,6 +34,6 @@ class SetIfNullValueTest extends TestCase
 
     public function test_is_not_absolute()
     {
-        $this->assertFalse(new SetIfNullValue(null)->isAbsolute());
+        $this->assertFalse((new SetIfNullValue(null))->isAbsolute());
     }
 }
