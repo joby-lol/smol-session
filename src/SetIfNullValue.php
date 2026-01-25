@@ -12,10 +12,10 @@ namespace Joby\Smol\Session;
 /** 
  * Set a given value if it is not null. Discards the given value if an existing one is set.
  */
-readonly class SetIfNullValue implements SessionUpdate
+class SetIfNullValue implements SessionUpdate
 {
     public function __construct(
-        public mixed $value
+        public readonly mixed $value
     ) {}
 
     /**

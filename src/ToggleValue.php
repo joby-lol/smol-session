@@ -12,7 +12,7 @@ namespace Joby\Smol\Session;
 /** 
  * Toggle a boolean value between true and false.
  */
-readonly class ToggleValue implements SessionUpdate
+class ToggleValue implements SessionUpdate
 {
     /**
      * @inheritDoc

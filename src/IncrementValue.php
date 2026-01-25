@@ -12,9 +12,10 @@ namespace Joby\Smol\Session;
 /** 
  * Increment a given value as an integer. Accepts floats, but the final value will be truncated to an int.
  */
-readonly class IncrementValue implements SessionUpdate
+class IncrementValue implements SessionUpdate
 {
-    public int $increment_by;
+
+    public readonly int $increment_by;
 
     public function __construct(
         int|float $increment_by = 1

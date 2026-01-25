@@ -12,7 +12,7 @@ namespace Joby\Smol\Session;
 /** 
  * Updates a given value to the current timestamp or a higher existing value.
  */
-readonly class TouchValue implements SessionUpdate
+class TouchValue implements SessionUpdate
 {
     /**
      * @inheritDoc

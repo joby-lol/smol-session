@@ -12,10 +12,10 @@ namespace Joby\Smol\Session;
 /** 
  * Set a given value to a specific value, discarding any existing value.
  */
-readonly class SetValue implements SessionUpdate
+class SetValue implements SessionUpdate
 {
     public function __construct(
-        public mixed $value
+        public readonly mixed $value
     ) {}
 
     /**

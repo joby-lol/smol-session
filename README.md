@@ -107,3 +107,11 @@ Session::update('items', new AppendToArray('new_item'));
 ```
 
 The `isAbsolute()` method indicates whether the update replaces the value entirely (like `SetValue`) or depends on the current value (like `IncrementValue`). Absolute updates enable performance optimizations by discarding previous queued updates for the same key.
+
+## Requirements
+
+Fully tested on PHP 8.3+, static analysis for PHP 8.1.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) file for details.
