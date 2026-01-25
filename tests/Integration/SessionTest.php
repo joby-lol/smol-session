@@ -103,10 +103,17 @@ class SessionTest extends TestCase
         $this->assertEquals(10, Session::get('counter'));
     }
 
-    public function test_unset_queues_update()
+    public function test_unset_queues_update_when_data_exists()
     {
+        Session::set('temp', 'data');
         Session::unset('temp');
         $this->assertTrue(Session::written('temp'));
+    }
+
+    public function test_unset_does_not_queue_update_when_data_does_not_exist()
+    {
+        Session::unset('temp');
+        $this->assertFalse(Session::written('temp'));
     }
 
     public function test_unset_returns_null()

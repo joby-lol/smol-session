@@ -69,6 +69,8 @@ class Session
      */
     public static function unset(string $key): void
     {
+        if (static::get($key) === null)
+            return;
         static::update($key, new UnsetValue());
     }
 
@@ -273,12 +275,20 @@ class Session
         return static::$storage_key;
     }
 
+    /**
+     * Return whether a session currently exists.
+     */
+    public static function exists(): bool
+    {
+        return session_status() !== PHP_SESSION_NONE || isset($_COOKIE[session_name()]);
+    }
+
     protected static function loadData(bool $force_refresh = false): void
     {
         // if we have data, and we're not forcing a refresh, then we're done
         if (static::$data !== null && !$force_refresh) return;
         // if there is no session then we're done
-        if (session_status() === PHP_SESSION_NONE && !isset($_COOKIE[session_name()])) {
+        if (!static::exists()) {
             static::$data = [];
             return;
         }
