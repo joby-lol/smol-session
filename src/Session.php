@@ -11,6 +11,7 @@ namespace Joby\Smol\Session;
 
 use Joby\Smol\Cast\StaticCastingGettersTrait;
 use RuntimeException;
+use Throwable;
 
 /**
  * Static facade for interacting with PHP's built-in session management. Can be used for simple getting and setting, but provides so much more than that. This interface also:
@@ -326,4 +327,19 @@ class Session
         return static::get($key);
     }
 
+    /**
+     * @inheritDoc
+     */
+    protected static function createCastException(string $type, string $name, Throwable $previous): Throwable
+    {
+        return new RuntimeException("Could not cast session item $name to $type", previous: $previous);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected static function createRequiredException(string $type, string $name): Throwable
+    {
+        return new RuntimeException("Required session item $name was not found");
+    }
 }
