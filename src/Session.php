@@ -10,6 +10,7 @@
 namespace Joby\Smol\Session;
 
 use Joby\Smol\Cast\StaticCastingGettersTrait;
+use Joby\Smol\Cast\TypeCastException;
 use RuntimeException;
 use Throwable;
 
@@ -332,7 +333,7 @@ class Session
      */
     protected static function createCastException(string $type, string $name, Throwable $previous): Throwable
     {
-        return new RuntimeException("Could not cast session item $name to $type", previous: $previous);
+        return new TypeCastException("Could not cast session item $name to $type", previous: $previous);
     }
 
     /**
@@ -340,6 +341,6 @@ class Session
      */
     protected static function createRequiredException(string $type, string $name): Throwable
     {
-        return new RuntimeException("Required session item $name was not found");
+        return new TypeCastException("Required session item $name was not found");
     }
 }
