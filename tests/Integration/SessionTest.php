@@ -9,10 +9,8 @@
 
 namespace Joby\Smol\Session\Tests\Integration;
 
+use Joby\Smol\Cast\TypeCastException;
 use Joby\Smol\Session\Session;
-use Joby\Smol\Session\SetValue;
-use Joby\Smol\Session\IncrementValue;
-use Joby\Smol\Session\UnsetValue;
 use PHPUnit\Framework\TestCase;
 
 class SessionTest extends TestCase
@@ -283,7 +281,7 @@ class SessionTest extends TestCase
 
     public function test_require_int_throws_when_value_is_null()
     {
-        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        $this->expectException(TypeCastException::class);
         Session::requireInt('missing');
     }
 
@@ -306,7 +304,7 @@ class SessionTest extends TestCase
 
     public function test_require_bool_throws_when_value_is_null()
     {
-        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        $this->expectException(TypeCastException::class);
         Session::requireBool('missing');
     }
 
@@ -318,8 +316,16 @@ class SessionTest extends TestCase
 
     public function test_require_string_throws_when_value_is_null()
     {
-        $this->expectException(\Joby\Smol\Cast\TypeCastException::class);
+        $this->expectException(TypeCastException::class);
         Session::requireString('missing');
+    }
+
+    public function test_get_after_commit_returns_persisted_value()
+    {
+        Session::set('foo', 'bar');
+        Session::commit();
+
+        $this->assertEquals('bar', Session::get('foo'));
     }
 
 }

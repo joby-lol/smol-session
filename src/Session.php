@@ -291,7 +291,9 @@ class Session
      */
     public static function exists(): bool
     {
-        return session_status() !== PHP_SESSION_NONE || isset($_COOKIE[session_name()]);
+        return session_status() !== PHP_SESSION_NONE
+            || isset($_COOKIE[session_name()])
+            || isset($_SESSION[static::storageKey()]);
     }
 
     protected static function loadData(bool $force_refresh = false): void
