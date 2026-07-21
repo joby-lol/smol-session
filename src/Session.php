@@ -239,7 +239,6 @@ class Session
         }
         // apply new values after they are all built, so that if an exception occurs we don't leave the session in a half-updated state
         foreach ($new_values as $key => $value) {
-            // @phpstan-ignore-next-line because we have already checked that this is an array
             $_SESSION[$storage_key][$key] = $value;
         }
         // now unset any keys that need to be removed
