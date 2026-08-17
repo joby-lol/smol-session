@@ -11,9 +11,10 @@ namespace Joby\Smol\Session\Tests\Integration;
 
 use Joby\Smol\Cast\TypeCastException;
 use Joby\Smol\Session\Session;
+use Joby\Smol\Session\SessionFacade;
 use PHPUnit\Framework\TestCase;
 
-class SessionTest extends TestCase
+class SessionFacadeTest extends TestCase
 {
 
     protected function setUp(): void
@@ -49,97 +50,85 @@ class SessionTest extends TestCase
 
     protected function resetSessionState(): void
     {
-        $reflection = new \ReflectionClass(Session::class);
-
-        $updates = $reflection->getProperty('updates');
-        $updates->setAccessible(true);
-        $updates->setValue(null, []);
-
-        $wasRead = $reflection->getProperty('was_read');
-        $wasRead->setAccessible(true);
-        $wasRead->setValue(null, []);
-
-        $data = $reflection->getProperty('data');
-        $data->setAccessible(true);
-        $data->setValue(null, null);
+        SessionFacade::setSession(new Session());
     }
 
     public function test_set_queues_value()
     {
-        Session::set('foo', 'bar');
-        $this->assertTrue(Session::written('foo'));
+        SessionFacade::set('foo', 'bar');
+        $this->assertTrue(SessionFacade::written('foo'));
     }
 
     public function test_get_returns_queued_value()
     {
-        Session::set('foo', 'bar');
-        $this->assertEquals('bar', Session::get('foo'));
+        SessionFacade::set('foo', 'bar');
+        $this->assertEquals('bar', SessionFacade::get('foo'));
     }
 
     public function test_get_returns_null_for_nonexistent_key()
     {
-        $this->assertNull(Session::get('nonexistent'));
+        $this->assertNull(SessionFacade::get('nonexistent'));
     }
 
     public function test_increment_queues_update()
     {
-        Session::increment('counter');
-        $this->assertTrue(Session::written('counter'));
+        SessionFacade::increment('counter');
+        $this->assertTrue(SessionFacade::written('counter'));
     }
 
     public function test_increment_returns_correct_value()
     {
-        Session::increment('counter');
-        $this->assertEquals(1, Session::get('counter'));
+        SessionFacade::increment('counter');
+        $this->assertEquals(1, SessionFacade::get('counter'));
     }
 
     public function test_multiple_increments_apply_correctly()
     {
-        Session::increment('counter', 5);
-        Session::increment('counter', 3);
-        Session::increment('counter', 2);
+        SessionFacade::increment('counter', 5);
+        SessionFacade::increment('counter', 3);
+        SessionFacade::increment('counter', 2);
 
-        $this->assertEquals(10, Session::get('counter'));
+        $this->assertEquals(10, SessionFacade::get('counter'));
     }
 
     public function test_unset_queues_update_when_data_exists()
     {
-        Session::set('temp', 'data');
-        Session::unset('temp');
-        $this->assertTrue(Session::written('temp'));
+        SessionFacade::set('temp', 'data');
+        SessionFacade::unset('temp');
+        $this->assertTrue(SessionFacade::written('temp'));
     }
 
     public function test_unset_does_not_queue_update_when_data_does_not_exist()
     {
-        Session::unset('temp');
-        $this->assertFalse(Session::written('temp'));
+        SessionFacade::unset('temp');
+        $this->assertFalse(SessionFacade::written('temp'));
     }
 
     public function test_unset_returns_null()
     {
-        Session::set('temp', 'data');
-        Session::unset('temp');
-        $this->assertNull(Session::get('temp'));
+        SessionFacade::set('temp', 'data');
+        SessionFacade::unset('temp');
+        $this->assertNull(SessionFacade::get('temp'));
     }
 
     public function test_commit_persists_unset()
     {
-        Session::set('temp', 'value');
-        Session::commit();
+        SessionFacade::set('temp', 'value');
+        SessionFacade::commit();
 
-        Session::unset('temp');
-        Session::commit();
+        SessionFacade::unset('temp');
+        SessionFacade::commit();
 
         // Reset internal cache
         $this->resetSessionState();
 
-        $this->assertNull(Session::get('temp'));
+        $this->assertNull(SessionFacade::get('temp'));
     }
 
     public function test_commit_without_changes_is_noop()
     {
         $sessionActive = session_status() === PHP_SESSION_ACTIVE;
-        Session::commit();
+        SessionFacade::commit();
 
         // Session should not have been started
         $this->assertEquals($sessionActive, session_status() === PHP_SESSION_ACTIVE);
@@ -147,84 +136,84 @@ class SessionTest extends TestCase
 
     public function test_written_returns_false_when_no_updates()
     {
-        $this->assertFalse(Session::written());
+        $this->assertFalse(SessionFacade::written());
     }
 
     public function test_written_returns_true_when_updates_exist()
     {
-        Session::set('foo', 'bar');
-        $this->assertTrue(Session::written());
+        SessionFacade::set('foo', 'bar');
+        $this->assertTrue(SessionFacade::written());
     }
 
     public function test_written_with_key_returns_correct_value()
     {
-        Session::set('foo', 'bar');
-        $this->assertTrue(Session::written('foo'));
-        $this->assertFalse(Session::written('baz'));
+        SessionFacade::set('foo', 'bar');
+        $this->assertTrue(SessionFacade::written('foo'));
+        $this->assertFalse(SessionFacade::written('baz'));
     }
 
     public function test_read_tracks_read_keys()
     {
-        Session::get('foo');
-        $this->assertTrue(Session::read('foo'));
+        SessionFacade::get('foo');
+        $this->assertTrue(SessionFacade::read('foo'));
     }
 
     public function test_read_returns_false_for_unread_keys()
     {
-        $this->assertFalse(Session::read('foo'));
+        $this->assertFalse(SessionFacade::read('foo'));
     }
 
     public function test_read_without_key_returns_overall_status()
     {
-        $this->assertFalse(Session::read());
-        Session::get('foo');
-        $this->assertTrue(Session::read());
+        $this->assertFalse(SessionFacade::read());
+        SessionFacade::get('foo');
+        $this->assertTrue(SessionFacade::read());
     }
 
     public function test_absolute_updates_discard_previous()
     {
-        Session::set('foo', 'first');
-        Session::set('foo', 'second');
-        Session::set('foo', 'third');
+        SessionFacade::set('foo', 'first');
+        SessionFacade::set('foo', 'second');
+        SessionFacade::set('foo', 'third');
 
         // Should only have one update queued
-        $reflection = new \ReflectionClass(Session::class);
+        $reflection = new \ReflectionObject(SessionFacade::session());
         $updates = $reflection->getProperty('updates');
         $updates->setAccessible(true);
-        $updatesList = $updates->getValue();
+        $updatesList = $updates->getValue(SessionFacade::session());
 
         $this->assertCount(1, $updatesList['foo']);
-        $this->assertEquals('third', Session::get('foo'));
+        $this->assertEquals('third', SessionFacade::get('foo'));
     }
 
     public function test_increment_after_set_uses_set_value()
     {
-        Session::set('counter', 10);
-        Session::increment('counter', 5);
+        SessionFacade::set('counter', 10);
+        SessionFacade::increment('counter', 5);
 
-        $this->assertEquals(15, Session::get('counter'));
+        $this->assertEquals(15, SessionFacade::get('counter'));
     }
 
     public function test_set_after_increment_discards_increment()
     {
-        Session::increment('counter', 5);
-        Session::set('counter', 100);
+        SessionFacade::increment('counter', 5);
+        SessionFacade::set('counter', 100);
 
-        $this->assertEquals(100, Session::get('counter'));
+        $this->assertEquals(100, SessionFacade::get('counter'));
     }
 
     public function test_commit_clears_internal_state()
     {
-        Session::set('foo', 'bar');
-        Session::commit();
+        SessionFacade::set('foo', 'bar');
+        SessionFacade::commit();
 
-        $this->assertFalse(Session::written());
-        $this->assertFalse(Session::read());
+        $this->assertFalse(SessionFacade::written());
+        $this->assertFalse(SessionFacade::read());
     }
 
     public function test_update_with_custom_implementation()
     {
-        Session::update(
+        SessionFacade::update(
             'items',
 
             new class implements \Joby\Smol\Session\SessionUpdate {
@@ -244,88 +233,88 @@ class SessionTest extends TestCase
             },
         );
 
-        $this->assertEquals(['new_item'], Session::get('items'));
+        $this->assertEquals(['new_item'], SessionFacade::get('items'));
     }
 
     public function test_storage_key_can_be_changed()
     {
-        Session::setStorageKey('custom_namespace');
-        $this->assertEquals('custom_namespace', Session::storageKey());
+        SessionFacade::setStorageKey('custom_namespace');
+        $this->assertEquals('custom_namespace', SessionFacade::storageKey());
 
         // Reset for other tests
-        Session::setStorageKey('_simple_session_data');
+        SessionFacade::setStorageKey('_simple_session_data');
     }
 
     public function test_changing_storage_key_resets_state()
     {
-        Session::set('foo', 'bar');
-        Session::setStorageKey('new_namespace');
+        SessionFacade::set('foo', 'bar');
+        SessionFacade::setStorageKey('new_namespace');
 
-        $this->assertFalse(Session::written());
-        $this->assertFalse(Session::read());
+        $this->assertFalse(SessionFacade::written());
+        $this->assertFalse(SessionFacade::read());
 
         // Reset for other tests
-        Session::setStorageKey('_simple_session_data');
+        SessionFacade::setStorageKey('_simple_session_data');
     }
 
     public function test_get_int_casts_string_to_int()
     {
-        Session::set('count', '42');
-        $this->assertSame(42, Session::getInt('count'));
+        SessionFacade::set('count', '42');
+        $this->assertSame(42, SessionFacade::getInt('count'));
     }
 
     public function test_get_int_returns_default_when_null()
     {
-        $this->assertSame(10, Session::getInt('missing', 10));
+        $this->assertSame(10, SessionFacade::getInt('missing', 10));
     }
 
     public function test_require_int_throws_when_value_is_null()
     {
         $this->expectException(TypeCastException::class);
-        Session::requireInt('missing');
+        SessionFacade::requireInt('missing');
     }
 
     public function test_get_float_casts_string_to_float()
     {
-        Session::set('price', '19.99');
-        $this->assertSame(19.99, Session::getFloat('price'));
+        SessionFacade::set('price', '19.99');
+        $this->assertSame(19.99, SessionFacade::getFloat('price'));
     }
 
     public function test_get_bool_casts_string_to_bool()
     {
-        Session::set('enabled', 'yes');
-        $this->assertTrue(Session::getBool('enabled'));
+        SessionFacade::set('enabled', 'yes');
+        $this->assertTrue(SessionFacade::getBool('enabled'));
     }
 
     public function test_get_bool_returns_default_when_null()
     {
-        $this->assertFalse(Session::getBool('missing', false));
+        $this->assertFalse(SessionFacade::getBool('missing', false));
     }
 
     public function test_require_bool_throws_when_value_is_null()
     {
         $this->expectException(TypeCastException::class);
-        Session::requireBool('missing');
+        SessionFacade::requireBool('missing');
     }
 
     public function test_get_string_casts_int_to_string()
     {
-        Session::set('id', 123);
-        $this->assertSame('123', Session::getString('id'));
+        SessionFacade::set('id', 123);
+        $this->assertSame('123', SessionFacade::getString('id'));
     }
 
     public function test_require_string_throws_when_value_is_null()
     {
         $this->expectException(TypeCastException::class);
-        Session::requireString('missing');
+        SessionFacade::requireString('missing');
     }
 
     public function test_get_after_commit_returns_persisted_value()
     {
-        Session::set('foo', 'bar');
-        Session::commit();
+        SessionFacade::set('foo', 'bar');
+        SessionFacade::commit();
 
-        $this->assertEquals('bar', Session::get('foo'));
+        $this->assertEquals('bar', SessionFacade::get('foo'));
     }
 
 }

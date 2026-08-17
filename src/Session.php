@@ -9,13 +9,13 @@
 
 namespace Joby\Smol\Session;
 
-use Joby\Smol\Cast\StaticCastingGettersTrait;
+use Joby\Smol\Cast\CastingGettersTrait;
 use Joby\Smol\Cast\TypeCastException;
 use RuntimeException;
 use Throwable;
 
 /**
- * Static facade for interacting with PHP's built-in session management. Can be used for simple getting and setting, but provides so much more than that. This interface also:
+ * Class for interacting with PHP's built-in session management. Can be used for simple getting and setting, but provides much more than that. This interface also:
  * 
  * - Lazily starts sessions only when data is written, to avoid uneccessary session data and cookie traffic.
  * - Only opens the session again for writing when commit() is called, and even then only for changes.
@@ -24,87 +24,96 @@ use Throwable;
 class Session
 {
 
-    use StaticCastingGettersTrait;
+    use CastingGettersTrait;
+
+    protected SystemSessionHelper $system;
 
     /** 
      * @var array<string,SessionUpdate[]> $updates a list of queued updates to apply on commit
      */
-    protected static array $updates = [];
+    protected array $updates = [];
 
     /**
      * @var array<string> $was_read a list of session keys that have been read during this request
      */
-    protected static array $was_read = [];
+    protected array $was_read = [];
 
     /**
-     * @var array<mixed>|null $data the session data, cached from $_SESSION on first read
+     * @var array<mixed>|null $data the session data, cached from $this->system->data on first read
      */
-    protected static array|null $data = null;
+    protected array|null $data = null;
 
     /**
-     * @var string $storage_key the key in $_SESSION where managed session data is stored. If modified, the entire class will be reset and all uncommitted changes lost.
+     * @var string $storage_key the key in $this->system->data where managed session data is stored. If modified, the entire class will be reset and all uncommitted changes lost.
      */
-    protected static string $storage_key = '_smol_session_data';
+    protected string $storage_key = '_smol_session_data';
+
+    public function __construct(
+        SystemSessionHelper|null $system = null,
+    )
+    {
+        $this->system = $system ?? new SystemSessionHelper();
+    }
 
     /**
      * Get the value for a given key, applying any queued updates.
      */
-    public static function get(string $key): mixed
+    public function get(string $key): mixed
     {
-        static::loadData();
-        static::markRead($key);
-        $value = static::$data[$key] ?? null;
-        return static::applyUpdates($key, $value);
+        $this->loadData();
+        $this->markRead($key);
+        $value = $this->data[$key] ?? null;
+        return $this->applyUpdates($key, $value);
     }
 
     /**
      * Set the value for a given key, queuing a SetValue update.
      */
-    public static function set(string $key, mixed $value): void
+    public function set(string $key, mixed $value): void
     {
-        static::update($key, new SetValue($value));
+        $this->update($key, new SetValue($value));
     }
 
     /**
      * Set the value for a given key if it is currently null, queuing a SetIfNullValue update.
      */
-    public static function setIfNull(string $key, mixed $value): void
+    public function setIfNull(string $key, mixed $value): void
     {
-        static::update($key, new SetIfNullValue($value));
+        $this->update($key, new SetIfNullValue($value));
     }
 
     /**
      * Unset the value for a given key, queuing an UnsetValue update
      */
-    public static function unset(string $key): void
+    public function unset(string $key): void
     {
-        if (static::get($key) === null)
+        if ($this->get($key) === null)
             return;
-        static::update($key, new UnsetValue());
+        $this->update($key, new UnsetValue());
     }
 
     /**
      * Increment the value for a given key by a given amount, queuing an IncrementValue update.
      */
-    public static function increment(string $key, int|float $by = 1): void
+    public function increment(string $key, int|float $by = 1): void
     {
-        static::update($key, new IncrementValue($by));
+        $this->update($key, new IncrementValue($by));
     }
 
     /**
      * Toggle the boolean value for a given key, queuing a ToggleValue update.
      */
-    public static function toggle(string $key): void
+    public function toggle(string $key): void
     {
-        static::update($key, new ToggleValue());
+        $this->update($key, new ToggleValue());
     }
 
     /**
      * Touch the value for a given key, queuing a TouchValue update. This will set the value to the current timestamp if it is not numeric, or update it to the current timestamp (or later if it's already set further out than time()).
      */
-    public static function touch(string $key): void
+    public function touch(string $key): void
     {
-        static::update($key, new TouchValue());
+        $this->update($key, new TouchValue());
     }
 
     /**
@@ -112,22 +121,22 @@ class Session
      * 
      * Does nothing but clear internal state if there is no existing session.
      */
-    public static function destroy(): void
+    public function destroy(): void
     {
         // clear internal state
-        static::$updates = [];
-        static::$was_read = [];
-        static::$data = null;
+        $this->updates = [];
+        $this->was_read = [];
+        $this->data = null;
         // if there is no session then we're done
-        if (session_status() === PHP_SESSION_NONE && !isset($_COOKIE[session_name()])) {
+        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()])) {
             return;
         }
         // otherwise, open and destroy the session
-        session_start();
+        $this->system->session_start();
         // clear the session cookie
-        $params = session_get_cookie_params();
-        setcookie(
-            session_name(), // @phpstan-ignore-line when not setting, this always returns a string
+        $params = $this->system->session_get_cookie_params();
+        $this->system->setcookie(
+            $this->system->session_name(), // @phpstan-ignore-line when not setting, this always returns a string
             '',
             time() - 3600,
             $params['path'],
@@ -136,7 +145,7 @@ class Session
             $params['httponly'],
         );
         // destroy the PHP session
-        session_destroy();
+        $this->system->session_destroy();
     }
 
     /**
@@ -144,28 +153,28 @@ class Session
      * 
      * Does nothing if there is no existing session.
      */
-    public static function rotate(bool $keep_old_session = false): void
+    public function rotate(bool $keep_old_session = false): void
     {
-        if (session_status() === PHP_SESSION_NONE && !isset($_COOKIE[session_name()])) {
+        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()])) {
             return;
         }
         // commit before rotation to ensure all changes are saved
-        static::commit();
+        $this->commit();
         // open and rotate the session
-        session_start();
+        $this->system->session_start();
         session_regenerate_id(!$keep_old_session);
-        session_write_close();
+        $this->system->session_write_close();
     }
 
     /**
      * Apply any queued updates for the named key to a given value.
      */
-    protected static function applyUpdates(string $key, mixed $value): mixed
+    protected function applyUpdates(string $key, mixed $value): mixed
     {
-        if (!isset(static::$updates[$key])) {
+        if (!isset($this->updates[$key])) {
             return $value;
         }
-        foreach (static::$updates[$key] as $update) {
+        foreach ($this->updates[$key] as $update) {
             $value = $update->apply($value);
         }
         return $value;
@@ -174,62 +183,62 @@ class Session
     /**
      * Return whether any session values have been read, or whether a specific one has by passing a key.
      */
-    public static function read(string|null $key = null): bool
+    public function read(string|null $key = null): bool
     {
         if ($key === null) {
-            return !empty(static::$was_read);
+            return !empty($this->was_read);
         }
-        return in_array($key, static::$was_read, true);
+        return in_array($key, $this->was_read, true);
     }
 
     /**
      * Return whether any session values are queued to be written, or whether a specific one is by passing a key.
      */
-    public static function written(string|null $key = null): bool
+    public function written(string|null $key = null): bool
     {
         if ($key === null) {
-            return !empty(static::$updates);
+            return !empty($this->updates);
         }
-        return isset(static::$updates[$key]);
+        return isset($this->updates[$key]);
     }
 
     /**
      * Queue an update to be applied to a given session key on commit.
      */
-    public static function update(string $key, SessionUpdate $update): void
+    public function update(string $key, SessionUpdate $update): void
     {
         if ($update->isAbsolute()) {
             // absolute updates clear any prior updates as a performance optimization
-            static::$updates[$key] = [$update];
+            $this->updates[$key] = [$update];
             return;
         }
         // otherwise, just append the update
-        static::$updates[$key][] = $update;
+        $this->updates[$key][] = $update;
     }
 
     /**
      * Commit any queued updates to the session storage. This will start the session if it has not already been started, and write and close it when done. If no updates are queued, this is a no-op. Can be called multiple times per request if desired, as it clears internal state after running.
      */
-    public static function commit(): void
+    public function commit(): void
     {
-        if (!static::written()) {
+        if (!$this->written()) {
             return;
         }
         // we start our own session here rather than relying on session_start() having been called earlier, because we may not have needed to read any data during this request, and we want to modify the actual current values of the session, not what was cached earlier
-        session_start();
+        $this->system->session_start();
         $new_values = [];
         $unset_keys = [];
-        $storage_key = static::storageKey();
-        if (!isset($_SESSION[$storage_key])) {
-            $_SESSION[$storage_key] = [];
+        $storage_key = $this->storageKey();
+        if (!isset($this->system->data[$storage_key])) {
+            $this->system->data[$storage_key] = [];
         }
-        if (!is_array($_SESSION[$storage_key])) {
+        if (!is_array($this->system->data[$storage_key])) {
             // if the storage key is not an array, we can't proceed
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
         }
-        foreach (array_keys(static::$updates) as $key) {
-            $value = $_SESSION[$storage_key][$key] ?? null;
-            $value = static::applyUpdates($key, $value);
+        foreach (array_keys($this->updates) as $key) {
+            $value = $this->system->data[$storage_key][$key] ?? null;
+            $value = $this->applyUpdates($key, $value);
             if ($value === null) {
                 $unset_keys[] = $key;
             }
@@ -239,84 +248,84 @@ class Session
         }
         // apply new values after they are all built, so that if an exception occurs we don't leave the session in a half-updated state
         foreach ($new_values as $key => $value) {
-            $_SESSION[$storage_key][$key] = $value;
+            $this->system->data[$storage_key][$key] = $value;
         }
         // now unset any keys that need to be removed
         foreach ($unset_keys as $key) {
             // @phpstan-ignore-next-line because we have already checked that this is an array
-            unset($_SESSION[$storage_key][$key]);
+            unset($this->system->data[$storage_key][$key]);
         }
         // write and close the session
-        session_write_close();
+        $this->system->session_write_close();
         // clear internal state so that commit can be called multiple times per request if desired
-        static::$updates = [];
-        static::$was_read = [];
-        static::$data = null;
+        $this->updates = [];
+        $this->was_read = [];
+        $this->data = null;
     }
 
     /**
      * Mark a key as having been read.
      */
-    public static function markRead(string $key): void
+    public function markRead(string $key): void
     {
-        if (!in_array($key, static::$was_read, true)) {
-            static::$was_read[] = $key;
+        if (!in_array($key, $this->was_read, true)) {
+            $this->was_read[] = $key;
         }
     }
 
     /**
-     * Change the storage key (effectively a namespace) in which managed data will actually be stored in $_SESSION. Changing this resets the entire class's state including any uncommitted changes.
+     * Change the storage key (effectively a namespace) in which managed data will actually be stored in $this->system->data. Changing this resets the entire class's state including any uncommitted changes.
      */
-    public static function setStorageKey(string $key): void
+    public function setStorageKey(string $key): void
     {
-        if ($key === static::$storage_key)
+        if ($key === $this->storage_key)
             return;
-        static::$storage_key = $key;
-        static::$updates = [];
-        static::$was_read = [];
-        static::$data = null;
+        $this->storage_key = $key;
+        $this->updates = [];
+        $this->was_read = [];
+        $this->data = null;
     }
 
     /**
-     * Get the current storage key (effectively a namespace) in which managed data is stored in $_SESSION.
+     * Get the current storage key (effectively a namespace) in which managed data is stored in $this->system->data.
      */
-    public static function storageKey(): string
+    public function storageKey(): string
     {
-        return static::$storage_key;
+        return $this->storage_key;
     }
 
     /**
      * Return whether a session currently exists.
      */
-    public static function exists(): bool
+    public function exists(): bool
     {
-        return session_status() !== PHP_SESSION_NONE
-            || isset($_COOKIE[session_name()])
-            || isset($_SESSION[static::storageKey()]);
+        return $this->system->session_status() !== PHP_SESSION_NONE
+            || isset($_COOKIE[$this->system->session_name()])
+            || isset($this->system->data[$this->storageKey()]);
     }
 
-    protected static function loadData(bool $force_refresh = false): void
+    protected function loadData(bool $force_refresh = false): void
     {
         // if we have data, and we're not forcing a refresh, then we're done
-        if (static::$data !== null && !$force_refresh)
+        if ($this->data !== null && !$force_refresh)
             return;
         // if there is no session then we're done
-        if (!static::exists()) {
-            static::$data = [];
+        if (!$this->exists()) {
+            $this->data = [];
             return;
         }
         // otherwise, load the session data
-        session_start();
-        $storage_key = static::storageKey();
-        if (!isset($_SESSION[$storage_key])) {
-            $_SESSION[$storage_key] = [];
+        $this->system->session_start();
+        $storage_key = $this->storageKey();
+        if (!isset($this->system->data[$storage_key])) {
+            $this->system->data[$storage_key] = [];
         }
-        if (!is_array($_SESSION[$storage_key])) {
+        if (!is_array($this->system->data[$storage_key])) {
             // if the storage key is not an array, we can't proceed
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
         }
-        static::$data = $_SESSION[$storage_key];
-        session_abort();
+        $this->data = $this->system->data[$storage_key];
+        $this->system->session_abort();
     }
 
     /**
@@ -324,15 +333,15 @@ class Session
      * 
      * This implementation of CastingGettersTrait::getCastableValue() loads session data for casting.
      */
-    protected static function getCastableValue(string $key): mixed
+    protected function getCastableValue(string $key): mixed
     {
-        return static::get($key);
+        return $this->get($key);
     }
 
     /**
      * @inheritDoc
      */
-    protected static function createCastException(string $type, string $name, Throwable $previous): Throwable
+    protected function createCastException(string $type, string $name, Throwable $previous): Throwable
     {
         return new TypeCastException("Could not cast session item $name to $type", previous: $previous);
     }
@@ -340,8 +349,9 @@ class Session
     /**
      * @inheritDoc
      */
-    protected static function createRequiredException(string $type, string $name): Throwable
+    protected function createRequiredException(string $type, string $name): Throwable
     {
         return new TypeCastException("Required session item $name was not found");
     }
+
 }
