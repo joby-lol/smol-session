@@ -162,7 +162,7 @@ class Session
         $this->commit();
         // open and rotate the session
         $this->system->session_start();
-        session_regenerate_id(!$keep_old_session);
+        $this->system->session_regenerate_id(!$keep_old_session);
         $this->system->session_write_close();
     }
 

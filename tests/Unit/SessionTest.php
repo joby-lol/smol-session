@@ -229,6 +229,10 @@ class SessionTest extends TestCase
         $this->system->expects($this->exactly(2))
             ->method('session_write_close');
 
+        $this->system->expects($this->once())
+            ->method('session_regenerate_id')
+            ->willReturn(true);
+
         $this->system->data = [
             '_smol_session_data' => [],
         ];

@@ -126,9 +126,25 @@ class SystemSessionHelper
         return session_get_cookie_params();
     }
 
+    /**
+     * Destroys all data registered to a session
+     * @return bool true on success or false on failure.
+     */
     public function session_destroy(): bool
     {
         return session_destroy();
+    }
+
+    /**
+     * Update the current session id with a newly generated one
+     *
+     * @param bool $delete_old_session [optional]
+     *                                 Whether to delete the old associated session file or not.
+     * @return bool true on success or false on failure.
+     */
+    public function session_regenerate_id(bool $delete_old_session = false): bool
+    {
+        return session_regenerate_id();
     }
 
     /**
