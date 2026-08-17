@@ -46,12 +46,14 @@ class Session
     /**
      * @var string $storage_key the key in $this->system->data where managed session data is stored. If modified, the entire class will be reset and all uncommitted changes lost.
      */
-    protected string $storage_key = '_smol_session_data';
+    protected string $storage_key;
 
     public function __construct(
+        string $storage_key = '_smol_session_data',
         SystemSessionHelper|null $system = null,
     )
     {
+        $this->storage_key = $storage_key;
         $this->system = $system ?? new SystemSessionHelper();
     }
 
