@@ -26,7 +26,7 @@ class SessionTest extends TestCase
     {
         parent::setUp();
         $this->system = $this->createMock(SystemSessionHelper::class);
-        $this->session = new Session($this->system);
+        $this->session = new Session(system: $this->system);
     }
 
     public function test_get_loads_data_and_marks_read(): void
