@@ -20,29 +20,33 @@ composer require joby/smol-session
 ```php
 use Joby\Smol\Session\Session;
 
+// Instantiate a single object
+// More than one may exist, and they will each store their own queue of atomic edits
+$session = new Session();
+
 // Set values (queued, doesn't lock the session)
-Session::set('user_id', 123);
-Session::set('username', 'john_doe');
+$session->set('user_id', 123);
+$session->set('username', 'john_doe');
 
 // Increment a counter (queued, doesn't lock the session, will apply to actual value upon commit to avoid race conditions)
-Session::increment('page_views');
-Session::increment('score', 10);
+$session->increment('page_views');
+$session->increment('score', 10);
 
 // Unset values (queued, doesn't lock the session)
-Session::unset('temp_data');
+$session->unset('temp_data');
 
 // Read values (applies queued updates to cached values for convenience)
-$userId = Session::get('user_id');
-$views = Session::get('page_views');
+$userId = $session->get('user_id');
+$views = $session->get('page_views');
 
 // Commit all changes at once atomically, does not reopen session if no changes are queued
-Session::commit();
+$session->commit();
 
 // Can rotate session IDs
-Session::rotate();
+$session->rotate();
 
 // Can also destroy the session, deleting all data and unsetting the cookie
-Session::destroy();
+$session->destroy();
 
 ```
 
@@ -51,30 +55,34 @@ Session::destroy();
 smolSession provides type-safe getter methods that automatically convert session values to the expected type:
 ```php
 // Type-safe access with automatic conversion
-$userId = Session::getInt('user_id');       // Converts "123" → 123
-$price = Session::getFloat('cart_total');   // Converts "19.99" → 19.99
-$enabled = Session::getBool('dark_mode');   // Converts "yes" → true
-$username = Session::getString('username'); // Converts 123 → "123"
+$userId = $session->getInt('user_id');       // Converts "123" → 123
+$price = $session->getFloat('cart_total');   // Converts "19.99" → 19.99
+$enabled = $session->getBool('dark_mode');   // Converts "yes" → true
+$username = $session->getString('username'); // Converts 123 → "123"
 
 // With defaults for missing values
-$limit = Session::getInt('page_limit', 20);
-$theme = Session::getString('theme', 'default');
-$debug = Session::getBool('debug', false);
+$limit = $session->getInt('page_limit', 20);
+$theme = $session->getString('theme', 'default');
+$debug = $session->getBool('debug', false);
 
 // Require values (throw TypeCastException if null/missing)
-$requiredId = Session::requireInt('user_id');
-$requiredEmail = Session::requireString('email');
+$requiredId = $session->requireInt('user_id');
+$requiredEmail = $session->requireString('email');
 ```
 
 ### Type Conversion Rules
 
 Values are converted pretty permissively using (https://github.com/joby-lol/smol-cast)[smolCast], see its readme for detailed rules about what can be converted and how it works.
 
+## Static facade
+
+There is also a static facade that stores its own internal singleton and exposes the same interface as an object would, see `Joby\Smol\Session\SessionFacade`.
+
 ## How It Works
 
-1. **Reading** - `Session::get()` reads from a cached copy of the session and applies any queued updates
-2. **Writing** - `Session::set()`, `Session::increment()`, and `Session::unset()` queue changes without opening the session
-3. **Committing** - `Session::commit()` opens the session, applies all updates atomically, and closes it
+1. **Reading** - `$session->get()` reads from a cached copy of the session and applies any queued updates
+2. **Writing** - `$session->set()`, `$session->increment()`, and `$session->unset()` queue changes without opening the session
+3. **Committing** - `$session->commit()` opens the session, applies all updates atomically, and closes it
 
 This approach minimizes session file locking and reduces the window where concurrent requests might conflict.
 
@@ -102,8 +110,8 @@ class AppendToArray implements SessionUpdate
     }
 }
 
-// Use with Session::update()
-Session::update('items', new AppendToArray('new_item'));
+// Use with $session->update()
+$session->update('items', new AppendToArray('new_item'));
 ```
 
 The `isAbsolute()` method indicates whether the update replaces the value entirely (like `SetValue`) or depends on the current value (like `IncrementValue`). Absolute updates enable performance optimizations by discarding previous queued updates for the same key.
