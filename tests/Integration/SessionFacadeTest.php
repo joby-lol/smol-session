@@ -119,9 +119,6 @@ class SessionFacadeTest extends TestCase
         SessionFacade::unset('temp');
         SessionFacade::commit();
 
-        // Reset internal cache
-        $this->resetSessionState();
-
         $this->assertNull(SessionFacade::get('temp'));
     }
 

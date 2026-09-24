@@ -31,7 +31,7 @@ class SystemSessionHelper
     )
     {
         if (is_null($data))
-            $this->$data = &$_SESSION;
+            $this->data = &$_SESSION;
         else
             $this->data = $data;
     }
@@ -91,7 +91,7 @@ class SystemSessionHelper
      *                          </p>
      * @return string|bool the name of the current session.
      */
-    public function session_name(string $name = null): string|bool
+    public function session_name(string|null $name = null): string|bool
     {
         return session_name($name);
     }
