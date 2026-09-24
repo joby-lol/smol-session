@@ -30,8 +30,11 @@ class SystemSessionHelper
         array|null &$data = null,
     )
     {
-        if (is_null($data))
+        if (is_null($data)) {
+            if (session_status() === PHP_SESSION_NONE)
+                session_start();
             $this->data = &$_SESSION;
+        }
         else
             $this->data = $data;
     }
