@@ -130,9 +130,8 @@ class Session
         $this->was_read = [];
         $this->data = null;
         // if there is no session then we're done
-        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()])) {
+        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()]))
             return;
-        }
         // otherwise, open and destroy the session
         $this->system->session_start();
         // clear the session cookie
@@ -157,9 +156,8 @@ class Session
      */
     public function rotate(bool $keep_old_session = false): void
     {
-        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()])) {
+        if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()]))
             return;
-        }
         // commit before rotation to ensure all changes are saved
         $this->commit();
         // open and rotate the session
@@ -173,12 +171,10 @@ class Session
      */
     protected function applyUpdates(string $key, mixed $value): mixed
     {
-        if (!isset($this->updates[$key])) {
+        if (!isset($this->updates[$key]))
             return $value;
-        }
-        foreach ($this->updates[$key] as $update) {
+        foreach ($this->updates[$key] as $update)
             $value = $update->apply($value);
-        }
         return $value;
     }
 
@@ -187,9 +183,8 @@ class Session
      */
     public function read(string|null $key = null): bool
     {
-        if ($key === null) {
+        if ($key === null)
             return !empty($this->was_read);
-        }
         return in_array($key, $this->was_read, true);
     }
 
@@ -198,9 +193,8 @@ class Session
      */
     public function written(string|null $key = null): bool
     {
-        if ($key === null) {
+        if ($key === null)
             return !empty($this->updates);
-        }
         return isset($this->updates[$key]);
     }
 
@@ -223,37 +217,33 @@ class Session
      */
     public function commit(): void
     {
-        if (!$this->written()) {
+        if (!$this->written())
             return;
-        }
         // we start our own session here rather than relying on session_start() having been called earlier, because we may not have needed to read any data during this request, and we want to modify the actual current values of the session, not what was cached earlier
         $this->system->session_start();
         $new_values = [];
         $unset_keys = [];
         $storage_key = $this->storageKey();
-        if (!isset($this->system->data[$storage_key])) {
+        if (!isset($this->system->data[$storage_key]))
             $this->system->data[$storage_key] = [];
-        }
-        if (!is_array($this->system->data[$storage_key])) {
-            // if the storage key is not an array, we can't proceed
+        // if the storage key is not an array, we can't proceed
+        if (!is_array($this->system->data[$storage_key]))
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
-        }
+        // apply updates and collect new values and unset keys
         foreach (array_keys($this->updates) as $key) {
             $value = $this->system->data[$storage_key][$key] ?? null;
             $value = $this->applyUpdates($key, $value);
-            if ($value === null) {
-                $unset_keys[] = $key;
-            }
-            else {
+            if ($value === null)
+                $unset_keys[$key] = $key;
+            else
                 $new_values[$key] = $value;
-            }
         }
         // apply new values after they are all built, so that if an exception occurs we don't leave the session in a half-updated state
         foreach ($new_values as $key => $value) {
             $this->system->data[$storage_key][$key] = $value;
         }
         // now unset any keys that need to be removed
-        foreach ($unset_keys as $key) {
+        foreach (array_unique($unset_keys) as $key) {
             // @phpstan-ignore-next-line because we have already checked that this is an array
             unset($this->system->data[$storage_key][$key]);
         }
@@ -270,9 +260,8 @@ class Session
      */
     public function markRead(string $key): void
     {
-        if (!in_array($key, $this->was_read, true)) {
+        if (!in_array($key, $this->was_read, true))
             $this->was_read[] = $key;
-        }
     }
 
     /**
@@ -319,13 +308,11 @@ class Session
         // otherwise, load the session data
         $this->system->session_start();
         $storage_key = $this->storageKey();
-        if (!isset($this->system->data[$storage_key])) {
+        if (!isset($this->system->data[$storage_key]))
             $this->system->data[$storage_key] = [];
-        }
-        if (!is_array($this->system->data[$storage_key])) {
-            // if the storage key is not an array, we can't proceed
+        // if the storage key is not an array, we can't proceed
+        if (!is_array($this->system->data[$storage_key]))
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
-        }
         $this->data = $this->system->data[$storage_key];
         $this->system->session_abort();
     }

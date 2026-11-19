@@ -21,22 +21,23 @@ class SystemSessionHelper
      * Reference to an array of data, by default points to $_SESSION.
      * @var array<mixed>
      */
-    public array $data;
+    public array|null $data;
+
+    /**
+     * Whether this instance should use the default $_SESSION data as its storage location.
+     * @var bool
+     */
+    private bool $use_system_data;
 
     /**
      * @param array<mixed>|null &$data
      */
     public function __construct(
-        array|null &$data = null,
+        array|null $data = null,
     )
     {
-        if (is_null($data)) {
-            if (session_status() === PHP_SESSION_NONE)
-                session_start();
-            $this->data = &$_SESSION;
-        }
-        else
-            $this->data = $data;
+        $this->data = $data;
+        $this->use_system_data = $data === null;
     }
 
     /**
@@ -59,7 +60,11 @@ class SystemSessionHelper
      */
     public function session_start(array $options = []): bool
     {
-        return session_start($options);
+        if (!session_start($options))
+            return false;
+        if ($this->use_system_data)
+            $this->data = &$_SESSION;
+        return true;
     }
 
     /**
@@ -147,7 +152,7 @@ class SystemSessionHelper
      */
     public function session_regenerate_id(bool $delete_old_session = false): bool
     {
-        return session_regenerate_id();
+        return session_regenerate_id($delete_old_session);
     }
 
     /**
