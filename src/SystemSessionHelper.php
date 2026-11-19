@@ -30,7 +30,7 @@ class SystemSessionHelper
     private bool $use_system_data;
 
     /**
-     * @param array<mixed>|null &$data
+     * @param array<mixed>|null $data
      */
     public function __construct(
         array|null $data = null,
