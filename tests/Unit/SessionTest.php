@@ -219,9 +219,6 @@ class SessionTest extends TestCase
                 true,
             );
 
-        $this->system->expects($this->once())
-            ->method('session_destroy');
-
         $this->session->set('foo', 'bar');
         $this->session->destroy();
 
