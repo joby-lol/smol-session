@@ -36,10 +36,12 @@ class SessionTest extends TestCase
             ->willReturn(PHP_SESSION_ACTIVE);
 
         $this->system->expects($this->once())
-            ->method('session_start');
+            ->method('session_start')
+            ->willReturn(true);
 
         $this->system->expects($this->once())
-            ->method('session_abort');
+            ->method('session_abort')
+            ->willReturn(true);
 
         $this->system->data = [
             '_smol_session_data' => ['user_id' => 42],
@@ -56,6 +58,14 @@ class SessionTest extends TestCase
         $this->system->expects($this->once())
             ->method('session_status')
             ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_abort')
+            ->willReturn(true);
 
         $this->system->data = [
             '_smol_session_data' => ['counter' => 10],
@@ -92,6 +102,14 @@ class SessionTest extends TestCase
             ->method('session_status')
             ->willReturn(PHP_SESSION_ACTIVE);
 
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_abort')
+            ->willReturn(true);
+
         $this->system->data = [
             '_smol_session_data' => ['existing' => 'value'],
         ];
@@ -112,10 +130,16 @@ class SessionTest extends TestCase
     public function test_commit_starts_applies_updates_and_closes_session(): void
     {
         $this->system->expects($this->atLeastOnce())
-            ->method('session_start');
+            ->method('session_start')
+            ->willReturn(true);
 
         $this->system->expects($this->once())
-            ->method('session_write_close');
+            ->method('session_write_close')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method(constraint: 'session_abort')
+            ->willReturn(true);
 
         $this->system->data = [
             '_smol_session_data' => [
@@ -140,8 +164,9 @@ class SessionTest extends TestCase
 
     public function test_commit_throws_exception_if_storage_key_is_not_array(): void
     {
-        $this->system->expects($this->once())
-            ->method('session_start');
+        $this->system->expects($this->atLeastOnce())
+            ->method('session_start')
+            ->willReturn(true);
 
         $this->system->data = [
             '_smol_session_data' => 'not an array',
@@ -162,7 +187,12 @@ class SessionTest extends TestCase
             ->willReturn(PHP_SESSION_ACTIVE);
 
         $this->system->expects($this->once())
-            ->method('session_start');
+            ->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_destroy')
+            ->willReturn(true);
 
         $this->system->expects($this->once())
             ->method('session_name')
@@ -224,10 +254,12 @@ class SessionTest extends TestCase
             ->willReturn(PHP_SESSION_ACTIVE);
 
         $this->system->expects($this->exactly(2))
-            ->method('session_start');
+            ->method('session_start')
+            ->willReturn(true);
 
         $this->system->expects($this->exactly(2))
-            ->method('session_write_close');
+            ->method('session_write_close')
+            ->willReturn(true);
 
         $this->system->expects($this->once())
             ->method('session_regenerate_id')
@@ -267,6 +299,189 @@ class SessionTest extends TestCase
             ->willReturn('PHPSESSID');
 
         $this->assertFalse($this->session->exists());
+    }
+
+    public function test_commit_throws_when_session_start_fails(): void
+    {
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(false);
+
+        $this->system->expects($this->never())
+            ->method('session_write_close');
+
+        $this->session->set('foo', 'bar');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to start session');
+
+        $this->session->commit();
+    }
+
+    public function test_commit_keeps_updates_when_session_write_close_fails(): void
+    {
+        $this->system->data = [];
+
+        $this->system->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_write_close')
+            ->willReturn(false);
+
+        $this->session->set('foo', 'bar');
+
+        try {
+            $this->session->commit();
+            $this->fail('Expected RuntimeException');
+        }
+        catch (RuntimeException $e) {
+            $this->assertStringContainsString(
+                'Failed to write and close session',
+                $e->getMessage(),
+            );
+            $this->assertTrue($this->session->written('foo'));
+        }
+    }
+
+    public function test_get_throws_when_session_start_fails(): void
+    {
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(false);
+
+        $this->system->expects($this->never())
+            ->method('session_abort');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to start session');
+
+        $this->session->get('foo');
+    }
+
+    public function test_get_throws_when_session_abort_fails(): void
+    {
+        $this->system->data = [
+            '_smol_session_data' => ['foo' => 'bar'],
+        ];
+
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_abort')
+            ->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to abort session');
+
+        $this->session->get('foo');
+    }
+
+    public function test_destroy_throws_when_session_start_fails(): void
+    {
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(false);
+
+        $this->system->expects($this->never())
+            ->method('setcookie');
+
+        $this->system->expects($this->never())
+            ->method('session_destroy');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to start session');
+
+        $this->session->destroy();
+    }
+
+    public function test_destroy_throws_when_session_destroy_fails(): void
+    {
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->method('session_start')
+            ->willReturn(true);
+
+        $this->system->method('session_name')
+            ->willReturn('PHPSESSID');
+
+        $this->system->method('session_get_cookie_params')
+            ->willReturn([
+                'path'     => '/',
+                'domain'   => '',
+                'secure'   => false,
+                'httponly' => true,
+            ]);
+
+        $this->system->method('setcookie')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_destroy')
+            ->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to destroy session');
+
+        $this->session->destroy();
+    }
+
+    public function test_rotate_throws_when_session_start_fails(): void
+    {
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->expects($this->once())
+            ->method('session_start')
+            ->willReturn(false);
+
+        $this->system->expects($this->never())
+            ->method('session_regenerate_id');
+
+        $this->system->expects($this->never())
+            ->method('session_write_close');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Failed to start rotated session');
+
+        $this->session->rotate();
+    }
+
+    public function test_rotate_throws_when_session_write_close_fails(): void
+    {
+        $this->system->method('session_status')
+            ->willReturn(PHP_SESSION_ACTIVE);
+
+        $this->system->method('session_start')
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_regenerate_id')
+            ->with(true)
+            ->willReturn(true);
+
+        $this->system->expects($this->once())
+            ->method('session_write_close')
+            ->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'Failed to write and close rotated session',
+        );
+
+        $this->session->rotate();
     }
 
 }

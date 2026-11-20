@@ -133,7 +133,8 @@ class Session
         if ($this->system->session_status() === PHP_SESSION_NONE && !isset($_COOKIE[$this->system->session_name()]))
             return;
         // otherwise, open and destroy the session
-        $this->system->session_start();
+        if (!$this->system->session_start())
+            throw new RuntimeException('Failed to start session for destruction');
         // clear the session cookie
         $params = $this->system->session_get_cookie_params();
         $this->system->setcookie(
@@ -146,7 +147,8 @@ class Session
             $params['httponly'],
         );
         // destroy the PHP session
-        $this->system->session_destroy();
+        if (!$this->system->session_destroy())
+            throw new RuntimeException('Failed to destroy session');
     }
 
     /**
@@ -161,9 +163,12 @@ class Session
         // commit before rotation to ensure all changes are saved
         $this->commit();
         // open and rotate the session
-        $this->system->session_start();
-        $this->system->session_regenerate_id(!$keep_old_session);
-        $this->system->session_write_close();
+        if (!$this->system->session_start())
+            throw new RuntimeException('Failed to start rotated session');
+        if (!$this->system->session_regenerate_id(!$keep_old_session))
+            throw new RuntimeException('Failed to regenerate session ID');
+        if (!$this->system->session_write_close())
+            throw new RuntimeException('Failed to write and close rotated session');
     }
 
     /**
@@ -220,7 +225,8 @@ class Session
         if (!$this->written())
             return;
         // we start our own session here rather than relying on session_start() having been called earlier, because we may not have needed to read any data during this request, and we want to modify the actual current values of the session, not what was cached earlier
-        $this->system->session_start();
+        if (!$this->system->session_start())
+            throw new RuntimeException('Failed to start session');
         $new_values = [];
         $unset_keys = [];
         $storage_key = $this->storageKey();
@@ -248,7 +254,8 @@ class Session
             unset($this->system->data[$storage_key][$key]);
         }
         // write and close the session
-        $this->system->session_write_close();
+        if (!$this->system->session_write_close())
+            throw new RuntimeException('Failed to write and close session');
         // clear internal state so that commit can be called multiple times per request if desired
         $this->updates = [];
         $this->was_read = [];
@@ -306,7 +313,8 @@ class Session
             return;
         }
         // otherwise, load the session data
-        $this->system->session_start();
+        if (!$this->system->session_start())
+            throw new RuntimeException('Failed to start session');
         $storage_key = $this->storageKey();
         if (!isset($this->system->data[$storage_key]))
             $this->system->data[$storage_key] = [];
@@ -314,7 +322,8 @@ class Session
         if (!is_array($this->system->data[$storage_key]))
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
         $this->data = $this->system->data[$storage_key];
-        $this->system->session_abort();
+        if (!$this->system->session_abort())
+            throw new RuntimeException('Failed to abort session after reading');
     }
 
     /**
