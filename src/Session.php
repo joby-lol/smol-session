@@ -321,9 +321,10 @@ class Session
         // if the storage key is not an array, we can't proceed
         if (!is_array($this->system->data[$storage_key]))
             throw new RuntimeException('Session storage key "' . $storage_key . '" is not an array.');
-        $this->data = $this->system->data[$storage_key];
+        $data = $this->system->data[$storage_key];
         if (!$this->system->session_abort())
             throw new RuntimeException('Failed to abort session after reading');
+        $this->data = $data;
     }
 
     /**
